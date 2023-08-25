@@ -1,0 +1,5 @@
+# Ignored all the of R and Rstudio project
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata

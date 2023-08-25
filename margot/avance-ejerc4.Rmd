@@ -1,0 +1,155 @@
+---
+author: "Margot L."
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(sf)
+library(ggmap)
+library(osmdata)
+library(mapview)
+sf_use_s2(FALSE)
+```
+
+make_bbox()
+st_bbox()
+getbb()
+
+```{r}
+bbox_montevideo <- getbb("Montevideo, Uruguay")
+```
+
+
+```{r}
+bbox_montevideo
+```
+```{r}
+mapa_montevideo <- get_stamenmap(bbox=bbox_montevideo,zoom=12)
+```
+
+```{r}
+ggmap(mapa_montevideo)
+```
+ 
+```{r}
+polygon_montevideo <- getbb("Montevideo, Uruguay",format_out = "sf_polygon")
+```
+
+```{r}
+polygon_montevideo <- polygon_montevideo %>% mutate(ID=row.names(polygon_montevideo))
+```
+
+```{r}
+ggmap(mapa_montevideo)+
+  geom_sf(data=polygon_montevideo, inherit.aes = FALSE)+
+  facet_wrap(~ID)
+```
+
+```{r}
+polygon_montevideo <- polygon_montevideo %>%
+  filter(ID==1)
+```
+
+```{r}
+ggmap(mapa_montevideo)+
+  geom_sf(data=polygon_montevideo, inherit.aes = FALSE, fill=NA, color= "blue")
+```
+
+
+### descarga de parques
+
+paso 1:seleccionar box
+opq()
+```{r}
+parques_montevideo <- opq(bbox_montevideo)
+```
+
+paso2: elegir que descargar: key=leisure, value=park
+add_osm_featurre()
+
+```{r}
+parques_montevideo <- add_osm_feature(parques_montevideo,
+                                      key="leisure",
+                                      value="park")
+
+```
+
+paso3: Descargar datos
+osmdata_sf()
+
+```{r}
+parques_montevideo <- osmdata_sf(parques_montevideo)
+```
+
+```{r}
+parques_montevideo
+```
+
+
+paso4: seleccionar los poligonos
+```{r}
+parques_polygons <- parques_montevideo$osm_polygons
+```
+
+```{r}
+parques_multipolygons <- parques_montevideo$osm_multipolygons
+```
+
+```{r}
+ggmap(mapa_montevideo)+
+  geom_sf(data=polygon_montevideo, inherit.aes = FALSE, fill=NA, color="blue")+
+  geom_sf(data=parques_polygons, inherit.aes = FALSE)+
+  geom_sf(data=parques_multipolygons, inherit.aes = FALSE)
+```
+
+rbind()
+
+```{r}
+parques_polygons <- parques_polygons %>%
+  select(osm_id, name)
+```
+
+```{r}
+parques_multipolygons <- parques_multipolygons %>%
+  select(osm_id, name)
+```
+
+```{r}
+parques_montevideo <- rbind(parques_polygons, parques_multipolygons)
+```
+
+
+st_intersection()
+```{r}
+ggmap(mapa_montevideo)+
+  geom_sf(data=polygon_montevideo, inherit.aes = FALSE, fill=NA, color="blue")+
+  geom_sf(data=parques_montevideo, inherit.aes = FALSE, fill="green")
+
+```
+
+```{r}
+parques_montevideo <- st_intersection(parques_montevideo, polygon_montevideo)
+
+```
+
+```{r}
+ggmap(mapa_montevideo)+
+  geom_sf(data=polygon_montevideo, inherit.aes = FALSE, fill=NA, color="blue")+
+  geom_sf(data=parques_montevideo, inherit.aes = FALSE, fill="green")
+```
+
+```{r}
+available_features()
+```
+
+```{r}
+available_tags("shop")
+```
+```{r}
+available_tags("leisure")
+```
+
+```{r}
+parques_montevideo <- parques_montevideo %>%
+  mutate(area_km2=st_area(parques_montevideo))
+```
